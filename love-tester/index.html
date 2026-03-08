@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Love Tester</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pacifico&display=swap" rel="stylesheet">
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    width: 100vw;
+    background: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    font-family: 'Press Start 2P', cursive;
+    user-select: none;
+}
+
+.wrapper16_9 {
+    width: 100%;
+    height: 100%;
+    max-width: calc(100vh * 16 / 9);
+    max-height: calc(100vw * 9 / 16);
+    aspect-ratio: 16 / 9;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(-45deg, #ff8fb1, #ff4d88, #ff7aa2, #ff3f78);
+    background-size: 400% 400%;
+    animation: bgMove 10s ease infinite;
+}
+
+@keyframes bgMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.bgCircle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    pointer-events: none;
+    animation: circleAnim 6s ease-out forwards;
+}
+
+@keyframes circleAnim {
+    0% { transform: scale(0.3); opacity: 0; }
+    20% { opacity: 0.5; }
+    100% { transform: scale(3); opacity: 0; }
+}
+
+.container {
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 0 25px rgba(0,0,0,0.25);
+    text-align: center;
+    width: 420px;
+    position: relative;
+    z-index: 2;
+}
+
+h1 {
+    font-family:'Pacifico', cursive;
+    color:#ff2d6f;
+    font-size:42px;
+    margin-bottom:30px;
+}
+
+input {
+    width:80%;
+    padding:12px;
+    margin:10px;
+    border-radius:10px;
+    border:2px solid #ff7aa2;
+    font-size:12px;
+    text-align:center;
+}
+
+button {
+    margin-top:15px;
+    padding:12px 25px;
+    border:none;
+    border-radius:12px;
+    background:#ff2d6f;
+    color:white;
+    cursor:pointer;
+    font-size:12px;
+    transition:0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+button:hover:not(:disabled) { transform: scale(1.1); }
+
+button:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+button::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0%;
+    background: rgba(255,255,255,0.2);
+    pointer-events: none;
+    transition: width 0.2s linear;
+}
+
+.result {
+    margin-top:25px;
+    font-size:20px;
+    color:#ff2d6f;
+}
+
+.bar {
+    width:100%;
+    height:22px;
+    background:#ffd1df;
+    border-radius:20px;
+    margin-top:15px;
+    overflow:hidden;
+}
+
+.fill {
+    height:100%;
+    width:0%;
+    background: linear-gradient(90deg,#ff2d6f,#ff7aa2);
+    transition: width 0.02s linear;
+}
+
+.heart {
+    position: absolute;
+    top:-20px;
+    animation: fall linear forwards;
+    user-select: none;
+}
+
+@keyframes fall {
+    to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+}
+
+.popup {
+    position: absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%) scale(0);
+    background:#ff7aa2;
+    color:white;
+    border-radius:20px;
+    font-size:16px;
+    text-align:center;
+    box-shadow:0 0 30px rgba(0,0,0,0.3);
+    z-index:999;
+    transition:0.3s;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    pointer-events:none;
+}
+
+.popupContent {
+    width:80%;
+    aspect-ratio:16/9;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    pointer-events:auto;
+}
+
+.popup.show { transform:translate(-50%,-50%) scale(1); }
+#popupText { font-size:18px; pointer-events:none; }
+</style>
+</head>
+<body>
+<div class="wrapper16_9">
+    <div class="container">
+        <h1>Love Tester</h1>
+        <input id="name1" placeholder="Nome 1"><br>
+        <input id="name2" placeholder="Nome 2"><br>
+        <button id="loveBtn" onclick="testLove()">Calcular Amor</button>
+        <div class="result" id="result">0%</div>
+        <div class="bar"><div class="fill" id="fill"></div></div>
+    </div>
+</div>
+<div id="popup" class="popup">
+    <div class="popupContent">
+        <span id="popupText"></span>
+    </div>
+</div>
+
+<script>
+document.addEventListener('keydown', (e) => { if(e.ctrlKey && e.key.toLowerCase() === 'a'){ e.preventDefault(); } });
+
+function seededRandom(seed){
+    let h=2166136261>>>0;
+    for(let i=0;i<seed.length;i++){
+        h^=seed.charCodeAt(i);
+        h=Math.imul(h,16777619);
+    }
+    return (h>>>0)/4294967295;
+}
+
+function lovePercent(a,b){
+    let seed=(a+b).toLowerCase();
+    let r=seededRandom(seed);
+    return Math.floor(r*101);
+}
+
+function testLove(){
+    let n1=document.getElementById("name1").value.trim();
+    let n2=document.getElementById("name2").value.trim();
+    if(!n1||!n2){ showPopup("Digite dois nomes!"); return; }
+
+    const btn = document.getElementById("loveBtn");
+    btn.disabled = true;
+    btn.innerText = "Carregando…";
+    btn.style.opacity = 0.6;
+
+    let percent = lovePercent(n1,n2);
+    animateResult(percent, () => {
+        btn.disabled = false;
+        btn.innerText = "Calcular Amor";
+        btn.style.opacity = 1;
+    });
+
+    spawnHearts();
+}
+
+function animateResult(target, callback){
+    let result = document.getElementById("result");
+    let fill = document.getElementById("fill");
+    let current = 0;
+    let interval = setInterval(()=>{
+        current++;
+        result.innerText = current+"%";
+        fill.style.width = current+"%";
+        if(current>=target){
+            clearInterval(interval);
+            if(target>75){ showPopup("Parabéns! Vocês se combinam!"); }
+            if(callback) callback();
+        }
+    },20);
+}
+
+function showPopup(text){
+    let popup = document.getElementById("popup");
+    let popupText = document.getElementById("popupText");
+    popupText.innerHTML = text;
+    popup.classList.add("show");
+    setTimeout(()=>popup.classList.remove("show"),3000);
+}
+
+function spawnHearts(){
+    for(let i=0;i<25;i++){
+        let heart=document.createElement("div");
+        heart.className="heart";
+        heart.innerText="💗";
+        heart.style.left=Math.random()*100+"%";
+        heart.style.fontSize=(16+Math.random()*24)+"px";
+        heart.style.animationDuration=(3+Math.random()*3)+"s";
+        document.querySelector('.wrapper16_9').appendChild(heart);
+        setTimeout(()=>heart.remove(),6000);
+    }
+}
+
+function spawnCircle(){
+    let c=document.createElement("div");
+    c.className="bgCircle";
+    let size=100+Math.random()*200;
+    c.style.width=size+"px";
+    c.style.height=size+"px";
+    c.style.left=Math.random()*100+"%";
+    c.style.top=Math.random()*100+"%";
+    document.querySelector('.wrapper16_9').appendChild(c);
+    setTimeout(()=>c.remove(),6000);
+}
+
+setInterval(spawnCircle,800);
+</script>
+</body>
+</html>
