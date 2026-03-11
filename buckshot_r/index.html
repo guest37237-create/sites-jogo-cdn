@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<title>Game</title>
+
+<style>
+
+body{
+margin:0;
+background:black;
+overflow:hidden;
+font-family:Arial;
+}
+
+/* canvas */
+
+#canvas{
+width:100vw;
+height:100vh;
+display:block;
+}
+
+/* blurred background */
+
+#loading-bg{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:url("background.png") center/cover no-repeat;
+filter:blur(25px);
+transform:scale(1.1);
+z-index:-1;
+}
+
+/* loading UI */
+
+#loader{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+width:420px;
+}
+
+#progress{
+height:10px;
+background:#222;
+border:1px solid #444;
+}
+
+#bar{
+height:100%;
+width:0%;
+background:#fff;
+transition:width .2s;
+}
+
+#notice{
+  color:#f5f5f5;
+  font-size:12px;
+  text-align:center;
+  margin-top:8px;
+  opacity:0.95;
+  max-width:420px;
+
+  text-shadow:
+    -1px -1px 0 #000,
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000;
+}
+
+#text{
+color:white;
+text-align:center;
+margin-top:10px;
+font-size:14px;
+}
+
+</style>
+
+<link rel="icon" href="index.icon.png">
+
+</head>
+
+<body>
+
+<div id="loading-bg"></div>
+
+<canvas id="canvas"></canvas>
+
+<div id="loader">
+<div id="progress">
+<div id="bar"></div>
+</div>
+<div id="notice">
+Por causa do tamanho do arquivo do jogo, ele pode demorar pra carregar!
+</div>
+<div id="text">...</div>
+</div>
+
+<script src="coi-serviceworker.min.js"></script>
+<script src="index.js"></script>
+
+<script>
+
+const bar=document.getElementById("bar")
+const text=document.getElementById("text")
+const loader=document.getElementById("loader")
+
+function setProgress(p){
+
+bar.style.width=p+"%"
+text.innerText="Carregando "+Math.floor(p)+"%"
+
+}
+
+async function loadParts(base,count,start,end){
+
+let buffers=[]
+let loaded=0
+
+for(let i=0;i<count;i++){
+
+const r=await fetch(base+".part"+i)
+const b=await r.arrayBuffer()
+
+buffers.push(b)
+
+loaded++
+let percent=start+(loaded/count)*(end-start)
+setProgress(percent)
+
+}
+
+let total=0
+buffers.forEach(b=>total+=b.byteLength)
+
+let tmp=new Uint8Array(total)
+
+let offset=0
+
+buffers.forEach(b=>{
+tmp.set(new Uint8Array(b),offset)
+offset+=b.byteLength
+})
+
+return tmp.buffer
+
+}
+
+(async()=>{
+
+try{
+
+/* load wasm */
+
+const wasmBuffer=await loadParts("index.wasm",2,0,20)
+
+/* load pck */
+
+const pckBuffer=await loadParts("index.pck",20,20,90)
+
+/* create blobs */
+
+const wasmURL=URL.createObjectURL(new Blob([wasmBuffer],{type:"application/wasm"}))
+const pckURL=URL.createObjectURL(new Blob([pckBuffer]))
+
+setProgress(95)
+
+/* start godot */
+
+const engine=new Engine({
+executable:"index",
+canvasResizePolicy:2
+})
+
+await engine.startGame({
+
+canvas:document.getElementById("canvas"),
+mainPack:pckURL,
+wasm:wasmURL,
+
+onProgress:(c,t)=>{
+
+if(t>0){
+setProgress(95+(c/t)*5)
+}
+
+}
+
+})
+
+loader.style.display="none"
+
+}catch(e){
+
+text.innerText="Error loading game"
+console.error(e)
+
+}
+
+})()
+
+</script>
+
+</body>
+</html>
